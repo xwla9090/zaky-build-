@@ -5,7 +5,7 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download IPA
         run: curl -L -o app.ipa "${{ secrets.IPA_URL }}"
@@ -22,21 +22,31 @@ jobs:
         run: |
           openssl genrsa -out cert.key 2048
           
-          CERT_CONTENT=$(app-store-connect certificates create \
+          app-store-connect certificates create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_DISTRIBUTION \
-            --certificate-key "@file:cert.key" 2>&1 | grep 'Content:' | sed 's/.*Content: "\(.*\)"/\1/')
+            --certificate-key "@file:cert.key" 2>&1 | tee cert_output.txt
           
-          echo "Cert content length: ${#CERT_CONTENT}"
-          echo "$CERT_CONTENT" | base64 --decode > cert.cer
-          openssl pkcs12 -export -inkey cert.key -in cert.cer -out cert.p12 -passout pass:""
+          cat cert_output.txt
+          CERT_ID=$(grep "^Id:" cert_output.txt | head -1 | awk '{print $2}')
+          echo "Cert ID: $CERT_ID"
+          
+          app-store-connect certificates get "$CERT_ID" \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --certificate-key "@file:cert.key" \
+            --save
+          
+          P12=$(find ~/Library/Developer/Xcode -name "*.p12" | head -1)
+          echo "P12: $P12"
           
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          security import cert.p12 -k build.keychain -P "" -T /usr/bin/codesign
+          security import "$P12" -k build.keychain -P "" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
           
           app-store-connect fetch-signing-files "${{ secrets.BUNDLE_ID }}" \
