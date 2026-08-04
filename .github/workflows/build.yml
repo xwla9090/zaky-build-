@@ -57,19 +57,18 @@ jobs:
           security import "$P12" -k build.keychain -P "" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
           
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          
           BUNDLE_ID_ID=$(app-store-connect bundle-ids list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 | grep -B5 "${{ secrets.BUNDLE_ID }}" | grep "^Id:" | head -1 | awk '{print $2}')
           echo "Bundle ID ID: $BUNDLE_ID_ID"
           
+          PROFILE_NAME="ZakyProfile_$(date +%s)"
           app-store-connect profiles create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
-            --name "ZakyProfile" \
+            --name "$PROFILE_NAME" \
             --type IOS_APP_STORE \
             --certificate-ids "$CERT_ID" \
             --save \
