@@ -1,0 +1,43 @@
+name: Build and Upload to TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download IPA
+        run: |
+          curl -L -o app.ipa "${{ secrets.IPA_URL }}"
+
+      - name: Install dependencies
+        run: |
+          pip3 install codemagic-cli-tools
+
+      - name: Setup API Key
+        run: |
+          mkdir -p ~/.private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+      - name: Change Bundle ID
+        run: |
+          mkdir -p Payload
+          cd Payload
+          unzip -o ../app.ipa
+          cd ..
+          APP_PATH=$(find Payload -name "*.app" -maxdepth 2 | head -1)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
+          echo "Bundle ID changed to ${{ secrets.BUNDLE_ID }}"
+
+      - name: Sign and Upload
+        run: |
+          app-store-connect --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            publish \
+            --path app.ipa \
+            --testflight
