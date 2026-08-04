@@ -27,7 +27,6 @@ jobs:
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_DISTRIBUTION 2>&1 | grep "^Id:" | awk '{print $2}' | while read CID; do
-              echo "Deleting cert: $CID"
               app-store-connect certificates delete "$CID" \
                 --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
                 --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
@@ -60,14 +59,10 @@ jobs:
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          echo "=== All bundle IDs ==="
-          app-store-connect bundle-ids list \
+          BUNDLE_ID_ID=$(app-store-connect bundle-ids list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 | tee bundles.txt
-          cat bundles.txt
-          
-          BUNDLE_ID_ID=$(grep -B5 "${{ secrets.BUNDLE_ID }}" bundles.txt | grep "^Id:" | head -1 | awk '{print $2}')
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 | grep -B5 "${{ secrets.BUNDLE_ID }}" | grep "^Id:" | head -1 | awk '{print $2}')
           echo "Bundle ID ID: $BUNDLE_ID_ID"
           
           app-store-connect profiles create \
@@ -79,16 +74,13 @@ jobs:
             --certificate-ids "$CERT_ID" \
             --save \
             "$BUNDLE_ID_ID" 2>&1 | tee profile_output.txt
-          
-          echo "=== Profiles ==="
-          ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles"
 
       - name: Resign IPA
         run: |
           unzip -o app.ipa -d Payload_dir
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
-          PROFILE=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
+          PROFILE=$(find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
           echo "Profile: $PROFILE"
           cp "$PROFILE" "$APP_PATH/embedded.mobileprovision"
           CERT=$(security find-identity -v -p codesigning build.keychain | grep "iPhone Distribution" | head -1 | awk '{print $2}')
