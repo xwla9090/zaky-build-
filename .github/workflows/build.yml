@@ -35,9 +35,9 @@ jobs:
 
       - name: Upload to TestFlight
         run: |
-          app-store-connect --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+          app-store-connect publish \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
-            publish \
             --path app.ipa \
             --testflight
