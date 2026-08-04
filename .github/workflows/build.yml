@@ -26,6 +26,11 @@ jobs:
       - name: Fetch signing files
         run: |
           keychain initialize
+          app-store-connect create-certificate \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --type IOS_DISTRIBUTION
           app-store-connect fetch-signing-files \
             "${{ secrets.BUNDLE_ID }}" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
