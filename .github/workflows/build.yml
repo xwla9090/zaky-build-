@@ -23,7 +23,7 @@ jobs:
           mkdir -p ~/.private_keys
           echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
-      - name: Fetch signing files and resign IPA
+      - name: Fetch signing files
         run: |
           keychain initialize
           app-store-connect fetch-signing-files \
@@ -32,8 +32,7 @@ jobs:
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_APP_STORE \
-            --create \
-            --save
+            --create
 
       - name: Change Bundle ID and Resign
         run: |
