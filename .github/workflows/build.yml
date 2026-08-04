@@ -27,13 +27,13 @@ jobs:
         run: |
           keychain initialize
           openssl genrsa -out cert.key 2048
-          openssl req -new -key cert.key -out cert.csr -subj "/CN=iOS Distribution/O=Test/C=US"
           app-store-connect certificates create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_DISTRIBUTION \
-            --certificate-key "@file:cert.key"
+            --certificate-key "@file:cert.key" \
+            --save
           app-store-connect fetch-signing-files \
             "${{ secrets.BUNDLE_ID }}" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
