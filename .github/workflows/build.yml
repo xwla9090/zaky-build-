@@ -48,12 +48,12 @@ jobs:
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          for PROFILE_ID in HFK6FWWYH2 GTKQLRHVM4 RSMB23CPHQ; do
-            app-store-connect profiles delete "$PROFILE_ID" \
-              --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
-              --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-              --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 || true
-          done
+          BUNDLE_ID_ID=$(app-store-connect bundle-ids list \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --identifier "${{ secrets.BUNDLE_ID }}" 2>&1 | grep "^Id:" | head -1 | awk '{print $2}')
+          echo "Bundle ID ID: $BUNDLE_ID_ID"
           
           app-store-connect profiles create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
@@ -61,8 +61,8 @@ jobs:
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --name "ZakyProfile" \
             --type IOS_APP_STORE \
-            --bundle-id-identifier "${{ secrets.BUNDLE_ID }}" \
-            --certificate-id "$CERT_ID" \
+            --bundle-id "$BUNDLE_ID_ID" \
+            --certificate "$CERT_ID" \
             --save 2>&1 | tee profile_output.txt
           
           echo "=== Profiles ==="
