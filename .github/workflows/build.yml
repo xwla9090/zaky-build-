@@ -48,25 +48,33 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          app-store-connect fetch-signing-files \
-            "${{ secrets.BUNDLE_ID }}" \
+          
+          app-store-connect profiles list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_APP_STORE \
-            --create \
-            --certificate-key "@file:cert.key" 2>&1 | tee profile_output.txt
-          cat profile_output.txt
-          ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles found"
-
-      - name: Debug profiles
-        run: |
-          echo "=== Profile output ==="
-          cat profile_output.txt || echo "No output file"
-          echo "=== Profiles dir ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "Empty"
-          echo "=== All mobileprovision ==="
-          find ~ -name "*.mobileprovision" 2>/dev/null || echo "None found"
+            --save 2>&1 | tee profile_output.txt || true
+          
+          echo "=== Profiles after list ==="
+          ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles"
+          
+          if [ ! "$(ls -A ~/Library/MobileDevice/Provisioning\ Profiles/)" ]; then
+            echo "Creating new profile..."
+            PROFILE_NAME="ZakyProfile_$(date +%s)"
+            app-store-connect profiles create \
+              --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+              --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+              --name "$PROFILE_NAME" \
+              --type IOS_APP_STORE \
+              --bundle-id-identifier "${{ secrets.BUNDLE_ID }}" \
+              --save 2>&1 | tee profile_create.txt || true
+            cat profile_create.txt
+          fi
+          
+          echo "=== Final profiles ==="
+          ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "Still no profiles"
 
       - name: Resign IPA
         run: |
