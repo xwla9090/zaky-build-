@@ -74,10 +74,27 @@ jobs:
             --save \
             "$BUNDLE_ID_ID" 2>&1 | tee profile_output.txt
 
-      - name: Resign IPA
+      - name: Remove invalid binaries and Resign IPA
         run: |
           unzip -o app.ipa -d Payload_dir
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
+          echo "App: $APP_PATH"
+          
+          # Zaky.framework بسڕەرەوە
+          find "$APP_PATH" -name "Zaky.framework" | while read FW; do
+            echo "Removing: $FW"
+            rm -rf "$FW"
+          done
+          
+          # standalone executables بسڕەرەوە
+          find "$APP_PATH" -name "*.framework" | while read FW; do
+            BINARY=$(basename "$FW" .framework)
+            if [ -f "$FW/$BINARY" ] && [ ! -f "$FW/Info.plist" ]; then
+              echo "Removing invalid framework: $FW"
+              rm -rf "$FW"
+            fi
+          done
+          
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
           PROFILE=$(find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
           echo "Profile: $PROFILE"
