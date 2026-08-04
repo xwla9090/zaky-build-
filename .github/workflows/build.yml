@@ -23,11 +23,27 @@ jobs:
           mkdir -p ~/.private_keys
           echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
-      - name: Change Bundle ID
+      - name: Fetch signing files and resign IPA
+        run: |
+          keychain initialize
+          app-store-connect fetch-signing-files \
+            "${{ secrets.BUNDLE_ID }}" \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --type IOS_APP_STORE \
+            --create \
+            --save
+
+      - name: Change Bundle ID and Resign
         run: |
           unzip -o app.ipa -d Payload_dir
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
+          PROFILE=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
+          cp "$PROFILE" "$APP_PATH/embedded.mobileprovision"
+          CERT=$(security find-identity -v -p codesigning | grep "iPhone Distribution" | head -1 | awk '{print $2}')
+          codesign --force --sign "$CERT" --entitlements /dev/null "$APP_PATH"
           cd Payload_dir
           zip -r ../app_new.ipa Payload/
           cd ..
