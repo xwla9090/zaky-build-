@@ -84,7 +84,16 @@ jobs:
           cp "$PROFILE" "$APP_PATH/embedded.mobileprovision"
           CERT=$(security find-identity -v -p codesigning build.keychain | grep "iPhone Distribution" | head -1 | awk '{print $2}')
           echo "Cert: $CERT"
+          
+          # هەموو Frameworks resign بکە
+          find "$APP_PATH/Frameworks" -name "*.framework" -o -name "*.dylib" | while read FW; do
+            echo "Signing: $FW"
+            codesign --force --sign "$CERT" "$FW" || true
+          done
+          
+          # ئەپ خۆی resign بکە
           codesign --force --sign "$CERT" "$APP_PATH"
+          
           cd Payload_dir && zip -r ../app_new.ipa Payload/ && cd ..
           mv app_new.ipa app.ipa
 
