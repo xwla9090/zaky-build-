@@ -23,14 +23,17 @@ jobs:
           mkdir -p ~/.private_keys
           echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
-      - name: Fetch signing files
+      - name: Setup signing
         run: |
           keychain initialize
-          app-store-connect create-certificate \
+          openssl genrsa -out cert.key 2048
+          openssl req -new -key cert.key -out cert.csr -subj "/CN=iOS Distribution/O=Test/C=US"
+          app-store-connect certificates create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
-            --type IOS_DISTRIBUTION
+            --type IOS_DISTRIBUTION \
+            --csr-path cert.csr
           app-store-connect fetch-signing-files \
             "${{ secrets.BUNDLE_ID }}" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
