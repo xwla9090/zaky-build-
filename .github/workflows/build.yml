@@ -22,6 +22,19 @@ jobs:
         run: |
           openssl genrsa -out cert.key 2048
           
+          # certificate ی کۆن بسڕەرەوە
+          app-store-connect certificates list \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --type IOS_DISTRIBUTION 2>&1 | grep "^Id:" | awk '{print $2}' | while read CID; do
+              echo "Deleting cert: $CID"
+              app-store-connect certificates delete "$CID" \
+                --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+                --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+                --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 || true
+            done
+          
           app-store-connect certificates create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
