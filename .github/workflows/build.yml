@@ -46,16 +46,15 @@ jobs:
           security import "$P12" -k build.keychain -P "" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
           
-          # profile وەربگرە
-          app-store-connect profiles create \
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          app-store-connect fetch-signing-files \
+            "${{ secrets.BUNDLE_ID }}" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
-            --name "ZakyTestProfile" \
             --type IOS_APP_STORE \
-            --bundle-id "${{ secrets.BUNDLE_ID }}" \
-            --certificate-id "$CERT_ID" \
-            --save
+            --create \
+            --certificate-key "@file:cert.key"
 
       - name: Resign IPA
         run: |
