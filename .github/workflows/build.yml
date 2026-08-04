@@ -40,6 +40,7 @@ jobs:
             --save
           
           P12=$(find ~/Library/Developer/Xcode -name "*.p12" | head -1)
+          echo "P12: $P12"
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
@@ -54,12 +55,15 @@ jobs:
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_APP_STORE \
             --create \
-            --certificate-key "@file:cert.key"
+            --certificate-key "@file:cert.key" 2>&1 | tee profile_output.txt
+          cat profile_output.txt
+          ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles found"
 
       - name: Resign IPA
         run: |
           unzip -o app.ipa -d Payload_dir
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
+          echo "App: $APP_PATH"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
           PROFILE=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
           echo "Profile: $PROFILE"
