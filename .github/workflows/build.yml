@@ -35,7 +35,7 @@ jobs:
           app-store-connect certificates get "$CERT_ID" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }>.p8" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --certificate-key "@file:cert.key" \
             --save
           
@@ -48,7 +48,6 @@ jobs:
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          # profile ی INVALID بسڕەرەوە
           for PROFILE_ID in HFK6FWWYH2 GTKQLRHVM4 RSMB23CPHQ; do
             app-store-connect profiles delete "$PROFILE_ID" \
               --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
@@ -56,7 +55,6 @@ jobs:
               --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 || true
           done
           
-          # profile نوێ دروست بکە
           app-store-connect profiles create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
