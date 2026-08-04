@@ -33,7 +33,7 @@ jobs:
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --type IOS_DISTRIBUTION \
-            --csr-path cert.csr
+            --certificate-key "@file:cert.key"
           app-store-connect fetch-signing-files \
             "${{ secrets.BUNDLE_ID }}" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
