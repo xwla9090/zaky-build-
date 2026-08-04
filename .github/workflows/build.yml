@@ -18,12 +18,19 @@ jobs:
         run: |
           keychain initialize
           openssl genrsa -out cert.key 2048
-          app-store-connect certificates create --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" --type IOS_DISTRIBUTION --certificate-key "@file:cert.key"
-          P12=$(find ~/Library/Developer/Xcode -name "*.p12" | head -1)
-          KEYCHAIN=$(ls ~/Library/codemagic-cli-tools/keychains/*.keychain-db | head -1)
-          security import "$P12" -k "$KEYCHAIN" -P "" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN"
-          app-store-connect fetch-signing-files "${{ secrets.BUNDLE_ID }}" --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" --type IOS_APP_STORE --create
+          app-store-connect certificates list \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --type IOS_DISTRIBUTION \
+            --certificate-key "@file:cert.key" \
+            --save
+          app-store-connect fetch-signing-files "${{ secrets.BUNDLE_ID }}" \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --type IOS_APP_STORE \
+            --create
           unzip -o app.ipa -d Payload_dir
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
@@ -33,4 +40,9 @@ jobs:
           codesign --force --sign "$CERT" --entitlements /dev/null "$APP_PATH"
           cd Payload_dir && zip -r ../app_new.ipa Payload/ && cd ..
           mv app_new.ipa app.ipa
-          app-store-connect publish --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" --path app.ipa --testflight
+          app-store-connect publish \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --path app.ipa \
+            --testflight
