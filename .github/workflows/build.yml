@@ -59,6 +59,15 @@ jobs:
           cat profile_output.txt
           ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles found"
 
+      - name: Debug profiles
+        run: |
+          echo "=== Profile output ==="
+          cat profile_output.txt || echo "No output file"
+          echo "=== Profiles dir ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "Empty"
+          echo "=== All mobileprovision ==="
+          find ~ -name "*.mobileprovision" 2>/dev/null || echo "None found"
+
       - name: Resign IPA
         run: |
           unzip -o app.ipa -d Payload_dir
