@@ -18,6 +18,12 @@ jobs:
         run: |
           keychain initialize
           openssl genrsa -out cert.key 2048
+          app-store-connect certificates create \
+            --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+            --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --type IOS_DISTRIBUTION \
+            --certificate-key "@file:cert.key" || true
           app-store-connect certificates list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
