@@ -35,12 +35,11 @@ jobs:
           app-store-connect certificates get "$CERT_ID" \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }>.p8" \
             --certificate-key "@file:cert.key" \
             --save
           
           P12=$(find ~/Library/Developer/Xcode -name "*.p12" | head -1)
-          echo "P12: $P12"
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
@@ -49,38 +48,32 @@ jobs:
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          app-store-connect profiles list \
+          # profile ی INVALID بسڕەرەوە
+          for PROFILE_ID in HFK6FWWYH2 GTKQLRHVM4 RSMB23CPHQ; do
+            app-store-connect profiles delete "$PROFILE_ID" \
+              --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
+              --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 || true
+          done
+          
+          # profile نوێ دروست بکە
+          app-store-connect profiles create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --name "ZakyProfile" \
             --type IOS_APP_STORE \
-            --save 2>&1 | tee profile_output.txt || true
+            --bundle-id-identifier "${{ secrets.BUNDLE_ID }}" \
+            --certificate-id "$CERT_ID" \
+            --save 2>&1 | tee profile_output.txt
           
-          echo "=== Profiles after list ==="
+          echo "=== Profiles ==="
           ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles"
-          
-          if [ ! "$(ls -A ~/Library/MobileDevice/Provisioning\ Profiles/)" ]; then
-            echo "Creating new profile..."
-            PROFILE_NAME="ZakyProfile_$(date +%s)"
-            app-store-connect profiles create \
-              --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
-              --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-              --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
-              --name "$PROFILE_NAME" \
-              --type IOS_APP_STORE \
-              --bundle-id-identifier "${{ secrets.BUNDLE_ID }}" \
-              --save 2>&1 | tee profile_create.txt || true
-            cat profile_create.txt
-          fi
-          
-          echo "=== Final profiles ==="
-          ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "Still no profiles"
 
       - name: Resign IPA
         run: |
           unzip -o app.ipa -d Payload_dir
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
-          echo "App: $APP_PATH"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
           PROFILE=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
           echo "Profile: $PROFILE"
