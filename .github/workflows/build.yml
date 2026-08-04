@@ -29,7 +29,6 @@ jobs:
             --type IOS_DISTRIBUTION \
             --certificate-key "@file:cert.key" 2>&1 | tee cert_output.txt
           
-          cat cert_output.txt
           CERT_ID=$(grep "^Id:" cert_output.txt | head -1 | awk '{print $2}')
           echo "Cert ID: $CERT_ID"
           
@@ -41,20 +40,22 @@ jobs:
             --save
           
           P12=$(find ~/Library/Developer/Xcode -name "*.p12" | head -1)
-          echo "P12: $P12"
-          
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security import "$P12" -k build.keychain -P "" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
           
-          app-store-connect fetch-signing-files "${{ secrets.BUNDLE_ID }}" \
+          # profile وەربگرە
+          app-store-connect profiles create \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
+            --name "ZakyTestProfile" \
             --type IOS_APP_STORE \
-            --create
+            --bundle-id "${{ secrets.BUNDLE_ID }}" \
+            --certificate-id "$CERT_ID" \
+            --save
 
       - name: Resign IPA
         run: |
@@ -62,9 +63,10 @@ jobs:
           APP_PATH=$(find Payload_dir -name "*.app" -maxdepth 3 | head -1)
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ secrets.BUNDLE_ID }}" "$APP_PATH/Info.plist"
           PROFILE=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" | head -1)
+          echo "Profile: $PROFILE"
           cp "$PROFILE" "$APP_PATH/embedded.mobileprovision"
           CERT=$(security find-identity -v -p codesigning build.keychain | grep "iPhone Distribution" | head -1 | awk '{print $2}')
-          echo "Using cert: $CERT"
+          echo "Cert: $CERT"
           codesign --force --sign "$CERT" "$APP_PATH"
           cd Payload_dir && zip -r ../app_new.ipa Payload/ && cd ..
           mv app_new.ipa app.ipa
