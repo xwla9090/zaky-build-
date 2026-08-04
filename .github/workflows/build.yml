@@ -51,8 +51,7 @@ jobs:
           BUNDLE_ID_ID=$(app-store-connect bundle-ids list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
-            --identifier "${{ secrets.BUNDLE_ID }}" 2>&1 | grep "^Id:" | head -1 | awk '{print $2}')
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 | grep -A5 "${{ secrets.BUNDLE_ID }}" | grep "^Id:" | head -1 | awk '{print $2}')
           echo "Bundle ID ID: $BUNDLE_ID_ID"
           
           app-store-connect profiles create \
@@ -61,9 +60,9 @@ jobs:
             --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" \
             --name "ZakyProfile" \
             --type IOS_APP_STORE \
-            --bundle-id "$BUNDLE_ID_ID" \
-            --certificate "$CERT_ID" \
-            --save 2>&1 | tee profile_output.txt
+            --certificate-ids "$CERT_ID" \
+            --save \
+            "$BUNDLE_ID_ID" 2>&1 | tee profile_output.txt
           
           echo "=== Profiles ==="
           ls ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles"
