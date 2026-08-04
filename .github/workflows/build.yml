@@ -22,7 +22,6 @@ jobs:
         run: |
           openssl genrsa -out cert.key 2048
           
-          # certificate ی کۆن بسڕەرەوە
           app-store-connect certificates list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
@@ -61,10 +60,14 @@ jobs:
           
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          BUNDLE_ID_ID=$(app-store-connect bundle-ids list \
+          echo "=== All bundle IDs ==="
+          app-store-connect bundle-ids list \
             --issuer-id "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             --key-id "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 | grep -A5 "${{ secrets.BUNDLE_ID }}" | grep "^Id:" | head -1 | awk '{print $2}')
+            --private-key "@file:$HOME/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8" 2>&1 | tee bundles.txt
+          cat bundles.txt
+          
+          BUNDLE_ID_ID=$(grep -B5 "${{ secrets.BUNDLE_ID }}" bundles.txt | grep "^Id:" | head -1 | awk '{print $2}')
           echo "Bundle ID ID: $BUNDLE_ID_ID"
           
           app-store-connect profiles create \
